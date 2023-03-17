@@ -2,3 +2,5 @@ python-dotenv
 black
 pylint
 pytest
+pandas
+matplotlib
