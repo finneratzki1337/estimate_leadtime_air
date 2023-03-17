@@ -131,8 +131,13 @@ def plot_histograms(df):
 
     # Plot histogram of hour of day of requests
     df['request'].dt.hour.hist(bins=24, ax=ax2)
+
+    # String of Flights from FLIGHT_SCHEDULE
+    flight_string = ""
+    for flight in FLIGHT_SCHEDULE:
+        flight_string += f'Flight {flight}: {FLIGHT_SCHEDULE[flight]}h, '
     # Add title to subplots
-    fig.suptitle(f'Lead time histogram with parameters: RFC_TIME={RFC_TIME}, LAT={LAT}, TOA={TOA}, FLIGHT_DURATION={FLIGHT_DURATION} \n OFFLOAD_RATE={OFFLOAD_RATE}, LAST_MILE={LAST_MILE}, CUSTOMS={CUSTOMS}', fontsize=7)
+    fig.suptitle(f'Lead time histogram with parameters: RFC_TIME={RFC_TIME}, LAT={LAT}, TOA={TOA}, FLIGHT_DURATION={FLIGHT_DURATION} \n OFFLOAD_RATE={OFFLOAD_RATE}, LAST_MILE={LAST_MILE}, CUSTOMS={CUSTOMS},\n FLIGHTS={flight_string}', fontsize=12)
     # Add title to lead time histogram
     ax1.set_title('Lead time histogram')
     # Add title to hour of day histogram
