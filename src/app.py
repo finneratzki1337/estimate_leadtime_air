@@ -26,16 +26,21 @@ my_setting = config["GENERAL"]["MY_SETTING"]
 RFC_TIME = 2
 LAT = 3
 TOA = 2
-FIRST_FLIGHT = 8
-LAST_FLIGHT = 13
+
+FLIGHT_SCHEDULE = {
+    1: 8,
+    2: 13,
+    #3: 13
+}
+
 FLIGHT_DURATION = 2.5
 OFFLOAD_RATE = 0.02
 LAST_MILE = 0
 CUSTOMS = 0
 THRESHOLD_HOURS = 16
 
-PEAK_HOUR = 12
-STD_DEV = 6
+PEAK_HOUR = 8
+STD_DEV = 8
 
 
 def main():
@@ -44,12 +49,36 @@ def main():
 
     request_list = create_sample_requests_norm()
     lead_time_list = []
+    flight_no_list = []
+    offload_list = []
     # Loop through all sample request and determine lead time for each request
     for request in request_list:
-        lead_time = determine_lead_time(request, RFC_TIME, LAT, TOA, FIRST_FLIGHT, LAST_FLIGHT, FLIGHT_DURATION, OFFLOAD_RATE, LAST_MILE, CUSTOMS)
+        lead_time, flight_no, offload = determine_lead_time_flight_schedule(request,
+                                                        rfc_time=RFC_TIME,
+                                                        lat=LAT,
+                                                        toa=TOA,
+                                                        flight_schedule=FLIGHT_SCHEDULE,
+                                                        flight_duration=FLIGHT_DURATION,
+                                                        offload_rate=OFFLOAD_RATE,
+                                                        last_mile=LAST_MILE,
+                                                        customs=CUSTOMS)
+        """lead_time = determine_lead_time(request,
+                                        rfc_time=RFC_TIME,
+                                        lat=LAT,
+                                        toa=TOA,
+                                        first_flight=FIRST_FLIGHT,
+                                        last_flight=LAST_FLIGHT,
+                                        flight_duration=FLIGHT_DURATION,
+                                        offload_rate=OFFLOAD_RATE,
+                                        last_mile=LAST_MILE,
+                                        customs=CUSTOMS
+                                        )"""
         lead_time_list.append(lead_time)
+        flight_no_list.append(flight_no)
+        offload_list.append(offload)
     # Create dataframe with sample requests and lead times
-    df = pd.DataFrame({'request': request_list, 'lead_time': lead_time_list})
+    df = pd.DataFrame({'request': request_list, 'lead_time': lead_time_list, "flight_no": flight_no_list, "offload": offload_list})
+    #df.to_excel("output/lead_times.xlsx", index=False)
     plot_histograms(df)
 
 # Fuction to plot 2 subplots with histograms for lead time and hour of day
@@ -73,7 +102,10 @@ def plot_histograms(df):
     strpos = 50
 
     # Create 2 subplots with histogram of lead times and histogram of hour of day of requests
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6))
+    # Create figure with 3 subplots
+
+
+    fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(24, 12))
     # Plot histogram of lead times
     df['lead_time'].hist(bins=24, ax=ax1)
     # Add 90% percentile line
@@ -100,11 +132,17 @@ def plot_histograms(df):
     # Plot histogram of hour of day of requests
     df['request'].dt.hour.hist(bins=24, ax=ax2)
     # Add title to subplots
-    fig.suptitle(f'Lead time histogram with parameters: RFC_TIME={RFC_TIME}, LAT={LAT}, TOA={TOA}, FIRST_FLIGHT={FIRST_FLIGHT}, LAST_FLIGHT={LAST_FLIGHT}, FLIGHT_DURATION={FLIGHT_DURATION} \n OFFLOAD_RATE={OFFLOAD_RATE}, LAST_MILE={LAST_MILE}, CUSTOMS={CUSTOMS}', fontsize=7)
+    fig.suptitle(f'Lead time histogram with parameters: RFC_TIME={RFC_TIME}, LAT={LAT}, TOA={TOA}, FLIGHT_DURATION={FLIGHT_DURATION} \n OFFLOAD_RATE={OFFLOAD_RATE}, LAST_MILE={LAST_MILE}, CUSTOMS={CUSTOMS}', fontsize=7)
     # Add title to lead time histogram
     ax1.set_title('Lead time histogram')
     # Add title to hour of day histogram
     ax2.set_title('Hour of day histogram (request behavior)')
+
+    # Plot bar chart of number of requests per flight in original order of flights
+    df['flight_no'].value_counts().sort_index().plot.bar(ax=ax3)
+    # Add title to bar chart
+    ax3.set_title('Number of requests per flight / Flight Usage')
+
     # Save figure to file
     fig.savefig("output/histograms.png")
 
@@ -125,35 +163,39 @@ def create_sample_requests():
     request_list = [datetime(2023, 1, 1, 0, 0) + timedelta(minutes=x) for x in range(0, 1440)]
     return request_list
 
-# Function to determine lead time depending on time of request
-def determine_lead_time(dt_request, rfc_time, lat, toa, first_flight, last_flight, flight_duration, offload_rate, last_mile, customs):
-    """Function to determine lead time depending on time of request.
+
+# Function to determine lead time based on time of request and flight schedule
+def determine_lead_time_flight_schedule(dt_request, rfc_time, lat, toa, flight_schedule, flight_duration, offload_rate, last_mile, customs):
+    """Function to determine lead time based on time of request and flight schedule.
     """
-    
     # Get 00:00 of dt_request
     dt_request_start = dt_request.replace(hour=0, minute=0, second=0, microsecond=0)
-
-    # time_of_request = datetime.now()
     # Randomly chose if unit is offloaded with a chance of OFFLOAD_RATE
     offload = np.random.choice([0, 1], p=[1-offload_rate, offload_rate])
-    #offload = 0
-    #print(time_of_request)
-    if dt_request + timedelta(hours = (rfc_time+lat)) <= dt_request_start + timedelta(hours=first_flight) and (offload == 0):
-        dt_arrival = dt_request_start + timedelta(hours=(first_flight + flight_duration + toa + customs + last_mile))
-    elif dt_request + timedelta(hours = (rfc_time+lat)) <= dt_request_start + timedelta(hours=last_flight) and (offload == 0):
-        dt_arrival = dt_request_start + timedelta(hours=(last_flight + flight_duration + toa + customs + last_mile))
-    # Too late for last flight on that day
-    elif dt_request + timedelta(hours = (rfc_time+lat)) > dt_request_start + timedelta(hours=last_flight) and (offload == 0):
-        dt_arrival = dt_request_start + timedelta(hours=(24 + first_flight + flight_duration + toa + customs + last_mile))
-    # If units if offloaded push it to either the later flight on that day or to the first flight next day
-    elif offload == 1:
-        if dt_request + timedelta(hours = (rfc_time+lat)) < dt_request_start + timedelta(hours=first_flight):
-            dt_arrival = dt_request_start + timedelta(hours=(last_flight + flight_duration + toa + customs + last_mile))
-        else:
-            dt_arrival = dt_request_start + timedelta(hours=(24 + first_flight + flight_duration + toa + customs + last_mile))
-    # Getting lead time in hours
+    flight_found = False
+    # Find maximum flight number
+    max_flight = max(flight_schedule.keys())
+    # Making sure flights are looped through in ascending order
+    for flight in range(1,max_flight+1):
+        if dt_request + timedelta(hours = (rfc_time+lat)) <= dt_request_start + timedelta(hours=flight_schedule[flight]):
+            dt_arrival = dt_request_start + timedelta(hours=(flight_schedule[flight] + flight_duration + toa + customs + last_mile))
+            flight_found = True
+            flight_no = flight
+            if offload == 1:
+                # Check if flight+1 is contained in flight_schedule
+                if flight+1 in flight_schedule:
+                    dt_arrival = dt_request_start + timedelta(hours=(flight_schedule[flight+1] + flight_duration + toa + customs + last_mile))
+                else:
+                    dt_arrival = dt_request_start + timedelta(hours=(24 + flight_schedule[1] + flight_duration + toa + customs + last_mile))
+            break
+
+    if flight_found == False:
+        dt_arrival = dt_request_start + timedelta(hours=(24 + flight_schedule[1] + flight_duration + toa + customs + last_mile))
+        # Find max key in flight_schedule
+        flight_no = max(flight_schedule.keys())+1
+
     lead_time = (dt_arrival - dt_request).total_seconds() / 3600
-    return lead_time
+    return lead_time, flight_no, offload
 
 
 if __name__ == "__main__":
