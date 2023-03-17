@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 from datetime import datetime, timedelta
 import pandas as pd
 import numpy as np
+from matplotlib import pyplot as plt
 
 # importing own modules
 from module_template.module_class import SampleClass
@@ -33,12 +34,15 @@ LAST_MILE = 0
 CUSTOMS = 0
 THRESHOLD_HOURS = 16
 
+PEAK_HOUR = 12
+STD_DEV = 6
+
 
 def main():
     """main method that executes the whole application.
     """
 
-    request_list = create_sample_requests()
+    request_list = create_sample_requests_norm()
     lead_time_list = []
     # Loop through all sample request and determine lead time for each request
     for request in request_list:
@@ -46,6 +50,12 @@ def main():
         lead_time_list.append(lead_time)
     # Create dataframe with sample requests and lead times
     df = pd.DataFrame({'request': request_list, 'lead_time': lead_time_list})
+    plot_histograms(df)
+
+# Fuction to plot 2 subplots with histograms for lead time and hour of day
+def plot_histograms(df):
+    """Fuction to plot 2 subplots with histograms for lead time and hour of day.
+    """
     # Calculate 90% percentile of lead times
     percentile_90 = round(df['lead_time'].quantile(0.9),2)
     # Calculate 95% percentile of lead times
@@ -62,31 +72,47 @@ def main():
     offset = 0.6
     strpos = 50
 
+    # Create 2 subplots with histogram of lead times and histogram of hour of day of requests
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6))
     # Plot histogram of lead times
-    plot = df['lead_time'].hist(bins=24)
+    df['lead_time'].hist(bins=24, ax=ax1)
     # Add 90% percentile line
-    plot.axvline(x=percentile_90, color='g', linestyle='--')
-    plot.text(percentile_90-offset, strpos, f'90% percentile: {percentile_90} h', rotation=90)
+    ax1.axvline(x=percentile_90, color='g', linestyle='--')
+    ax1.text(percentile_90-offset, strpos, f'90% percentile: {percentile_90} h', rotation=90)
     # Add 95% percentile line
-    plot.axvline(x=percentile_95, color='y', linestyle='--')
-    plot.text(percentile_95-offset, strpos, f'95% percentile: {percentile_95} h', rotation=90)
+    ax1.axvline(x=percentile_95, color='y', linestyle='--')
+    ax1.text(percentile_95-offset, strpos, f'95% percentile: {percentile_95} h', rotation=90)
     # Add 98% percentile line
-    plot.axvline(x=percentile_98, color='r', linestyle='--')
-    plot.text(percentile_98-offset, strpos, f'98% percentile: {percentile_98} h', rotation=90)
+    ax1.axvline(x=percentile_98, color='r', linestyle='--')
+    ax1.text(percentile_98-offset, strpos, f'98% percentile: {percentile_98} h', rotation=90)
     # Add average lead time line
-    plot.axvline(x=average_lead_time, color='b', linestyle='dotted')
-    plot.text(average_lead_time-offset, strpos, f'Average lead time: {average_lead_time} h', rotation=90)
+    ax1.axvline(x=average_lead_time, color='b', linestyle='dotted')
+    ax1.text(average_lead_time-offset, strpos, f'Average lead time: {average_lead_time} h', rotation=90)
     # Add minimum lead time line
-    plot.axvline(x=min_lead_time, color='b', linestyle='dotted')
-    plot.text(min_lead_time-offset, strpos, f'Minimum lead time: {min_lead_time} h', rotation=90)
+    ax1.axvline(x=min_lead_time, color='b', linestyle='dotted')
+    ax1.text(min_lead_time-offset, strpos, f'Minimum lead time: {min_lead_time} h', rotation=90)
     # Add text with percentage of requests below threshold
-    plot.text(0.1, 0.1, f'{percentage_below_threshold}% of requests below {THRESHOLD_HOURS} h', transform=plot.transAxes)
-    fig = plot.get_figure()
+    ax1.text(0.1, 0.1, f'{percentage_below_threshold}% of requests below {THRESHOLD_HOURS} h', transform=ax1.transAxes)
 
-    # Write parameters to title of plot
+    # Plot histogram of hour of day of requests
+    df['request'].dt.hour.hist(bins=24, ax=ax2)
+    # Add title to subplots
     fig.suptitle(f'Lead time histogram with parameters: RFC_TIME={RFC_TIME}, LAT={LAT}, TOA={TOA}, FIRST_FLIGHT={FIRST_FLIGHT}, LAST_FLIGHT={LAST_FLIGHT}, FLIGHT_DURATION={FLIGHT_DURATION} \n OFFLOAD_RATE={OFFLOAD_RATE}, LAST_MILE={LAST_MILE}, CUSTOMS={CUSTOMS}', fontsize=7)
+    # Add title to lead time histogram
+    ax1.set_title('Lead time histogram')
+    # Add title to hour of day histogram
+    ax2.set_title('Hour of day histogram (request behavior)')
     # Save figure to file
-    fig.savefig("output/lead_time_histogram.png")
+    fig.savefig("output/histograms.png")
+
+# Function that creates normally distributed sample requests with mean 12:00 and standard deviation 4 hours
+def create_sample_requests_norm():
+    """Function that creates normally distributed sample requests with mean 12:00 and standard deviation 4 hours.
+    """
+    # Draw 2000 samples from normal distribution with mean 12:00 and standard deviation 240 minutes
+    samples = np.random.normal(PEAK_HOUR*60, STD_DEV*60, 2000)
+    request_list = [datetime(2023, 1, 1, 0, 0) + timedelta(minutes=x) for x in samples]
+    return request_list
 
 # Function to create list of sample requests as datetime objects for every minute of the day
 def create_sample_requests():
