@@ -137,12 +137,19 @@ def plot_histograms(df):
     ax1.set_title('Lead time histogram')
     # Add title to hour of day histogram
     ax2.set_title('Hour of day histogram (request behavior)')
-
+    for flight in FLIGHT_SCHEDULE:
+        ax2.axvline(x=FLIGHT_SCHEDULE[flight], color='r', linestyle='--')
+        ax2.text(FLIGHT_SCHEDULE[flight]-0.5, 100, f'Flight {flight}', rotation=90)
+        # Add horizontal arrow with length LAT+RFC_TIME hours before flight pointing to the left
+        ax2.annotate('', xy=(FLIGHT_SCHEDULE[flight]-(LAT+RFC_TIME), 100), xytext=(FLIGHT_SCHEDULE[flight]-(LAT+RFC_TIME)-0.5, 100), arrowprops=dict(arrowstyle='->'))
     # Plot bar chart of number of requests per flight in original order of flights
     df['flight_no'].value_counts().sort_index().plot.bar(ax=ax3)
+
+
     # Add title to bar chart
     ax3.set_title('Number of requests per flight / Flight Usage')
-
+    # Add red vertical lines for each flight
+    
     # Save figure to file
     fig.savefig("output/histograms.png")
 
