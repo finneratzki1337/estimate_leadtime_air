@@ -23,21 +23,23 @@ user_name = os.environ["USER_NAME"]
 password = os.environ["USER_PASSWORD"]
 my_setting = config["GENERAL"]["MY_SETTING"]
 
-RFC_TIME = 2
-LAT = 3
-TOA = 2
+RFC_TIME = 1
+LAT = 1.5
+TOA = 1.5
 
 FLIGHT_SCHEDULE = {
-    1: 8,
-    2: 13,
-    #3: 13
+    1: 3,
+    2: 8,
+    3: 13,
+    4: 18,
+    5: 23,
 }
 
 FLIGHT_DURATION = 2.5
 OFFLOAD_RATE = 0.02
 LAST_MILE = 0
 CUSTOMS = 0
-THRESHOLD_HOURS = 16
+THRESHOLD_HOURS = 12
 
 PEAK_HOUR = 8
 STD_DEV = 8
@@ -127,10 +129,13 @@ def plot_histograms(df):
     ax1.text(0.1, 0.1, f'{percentage_below_threshold}% of requests below {THRESHOLD_HOURS} h', transform=ax1.transAxes)
     # Add cumulative distribution line on second y-axis
     ax1b = ax1.twinx()
-    ax1b.hist(df['lead_time'], bins=200, cumulative=True, density=True, histtype='step', color='orange', linestyle='dotted')
+    ax1b.hist(df['lead_time'], bins=200, cumulative=True, density=True, histtype='step', color='k', linestyle='dotted', linewidth=2)
 
     # Plot histogram of hour of day of requests
     df['request'].dt.hour.hist(bins=24, ax=ax2)
+    # Plot cumulative distribution of hour of day of requests on second y axis
+    ax2b = ax2.twinx()
+    ax2b.hist(df['request'].dt.hour, bins=200, cumulative=True, density=True, histtype='step', color='k', linestyle='dotted', linewidth=2)
 
     # String of Flights from FLIGHT_SCHEDULE
     flight_string = ""
@@ -143,10 +148,13 @@ def plot_histograms(df):
     # Add title to hour of day histogram
     ax2.set_title('Hour of day histogram (request behavior)')
     for flight in FLIGHT_SCHEDULE:
-        ax2.axvline(x=FLIGHT_SCHEDULE[flight], color='r', linestyle='--')
+        ax2.axvline(x=FLIGHT_SCHEDULE[flight], color='r', linestyle='--', linewidth=3)
         ax2.text(FLIGHT_SCHEDULE[flight]-0.5, 100, f'Flight {flight}', rotation=90)
-        # Add horizontal arrow with length LAT+RFC_TIME hours before flight pointing to the left
-        ax2.annotate('', xy=(FLIGHT_SCHEDULE[flight]-(LAT+RFC_TIME), 100), xytext=(FLIGHT_SCHEDULE[flight]-(LAT+RFC_TIME)-0.5, 100), arrowprops=dict(arrowstyle='->'))
+
+        ax2.axvline(x=FLIGHT_SCHEDULE[flight]-(LAT+RFC_TIME), color='orange', linestyle='--', linewidth=1)
+        ax2.text(FLIGHT_SCHEDULE[flight]-(LAT+RFC_TIME)-0.5, 50, f'Cut-off flight {flight}', rotation=90)
+        #print(f"adding flight {flight}")
+        #ax2.annotate(f'{flight} h', xy=(FLIGHT_SCHEDULE[flight]-(LAT+RFC_TIME), (100-FLIGHT_SCHEDULE[flight])), xytext=(FLIGHT_SCHEDULE[flight]-(LAT+RFC_TIME)-0.5, (100-FLIGHT_SCHEDULE[flight])), arrowprops=dict(arrowstyle='->'))
     # Plot bar chart of number of requests per flight in original order of flights
     df['flight_no'].value_counts().sort_index().plot.bar(ax=ax3)
 
