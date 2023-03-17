@@ -135,7 +135,9 @@ def plot_histograms(df):
     df['request'].dt.hour.hist(bins=24, ax=ax2)
     # Plot cumulative distribution of hour of day of requests on second y axis
     ax2b = ax2.twinx()
-    ax2b.hist(df['request'].dt.hour, bins=200, cumulative=True, density=True, histtype='step', color='k', linestyle='dotted', linewidth=2)
+    # Get number of seconds since midnight for each request
+    the_hours = (df['request'].dt.hour * 3600 + df['request'].dt.minute * 60 + df['request'].dt.second) / 3600
+    ax2b.hist(the_hours, bins=200, cumulative=True, density=True, histtype='step', color='k', linestyle='dotted', linewidth=2)
 
     # String of Flights from FLIGHT_SCHEDULE
     flight_string = ""
