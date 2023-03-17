@@ -157,8 +157,11 @@ def plot_histograms(df):
         ax2.text(FLIGHT_SCHEDULE[flight]-(LAT+RFC_TIME)-0.5, 50, f'Cut-off flight {flight}', rotation=90)
         #print(f"adding flight {flight}")
         #ax2.annotate(f'{flight} h', xy=(FLIGHT_SCHEDULE[flight]-(LAT+RFC_TIME), (100-FLIGHT_SCHEDULE[flight])), xytext=(FLIGHT_SCHEDULE[flight]-(LAT+RFC_TIME)-0.5, (100-FLIGHT_SCHEDULE[flight])), arrowprops=dict(arrowstyle='->'))
-    # Plot bar chart of number of requests per flight in original order of flights
-    df['flight_no'].value_counts().sort_index().plot.bar(ax=ax3)
+    # Plot bar chart of number of requests per flight in original order of flights in percent of total requests
+    # Get value counts as percentage of total requests
+    df['flight_no'].value_counts(normalize=True).sort_index().plot.bar(ax=ax3)
+
+    #df['flight_no'].value_counts().sort_index().plot.bar(ax=ax3)
 
 
     # Add title to bar chart
