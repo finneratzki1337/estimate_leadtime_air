@@ -93,6 +93,9 @@ def plot_histograms(df):
     ax1.text(min_lead_time-offset, strpos, f'Minimum lead time: {min_lead_time} h', rotation=90)
     # Add text with percentage of requests below threshold
     ax1.text(0.1, 0.1, f'{percentage_below_threshold}% of requests below {THRESHOLD_HOURS} h', transform=ax1.transAxes)
+    # Add cumulative distribution line on second y-axis
+    ax1b = ax1.twinx()
+    ax1b.hist(df['lead_time'], bins=200, cumulative=True, density=True, histtype='step', color='orange', linestyle='dotted')
 
     # Plot histogram of hour of day of requests
     df['request'].dt.hour.hist(bins=24, ax=ax2)
