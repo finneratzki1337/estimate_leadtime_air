@@ -7,6 +7,7 @@ import pandas as pd
 import numpy as np
 from matplotlib import pyplot as plt
 
+
 # importing own modules
 from module_template.module_class import SampleClass
 
@@ -39,7 +40,7 @@ FLIGHT_DURATION = 2.5
 OFFLOAD_RATE = 0.02
 LAST_MILE = 0
 CUSTOMS = 0
-THRESHOLD_HOURS = 12
+THRESHOLD_HOURS = 16
 
 PEAK_HOUR = 8
 STD_DEV = 8
@@ -222,6 +223,101 @@ def determine_lead_time_flight_schedule(dt_request, rfc_time, lat, toa, flight_s
     lead_time = (dt_arrival - dt_request).total_seconds() / 3600
     return lead_time, flight_no, offload
 
+# Function to create FLIGHT_SCHEDULE based on given number of flights per day
+def create_schedule(flights_per_day):
+    hours_between_flights = 24 / flights_per_day
+    flight_schedule = {}
+    for i in range(1, flights_per_day+1):
+        flight_schedule[i] = (i-1)*hours_between_flights
+
+    return flight_schedule
+
+def sensitivity_analysis():
+    flight_schedules = {}
+    flight_durations = []
+    for i in range(1, 14):
+        flight_schedules[i] = create_schedule(i)
+
+    for i in range(1,16):
+        flight_durations.append(i)
+
+    request_list = create_sample_requests_norm()
+    df_final = pd.DataFrame()
+    df_percentiles = pd.DataFrame()
+    for flight_schedule in flight_schedules:
+        for flight_duration in flight_durations:
+            lead_time_list = []
+            flight_no_list = []
+            offload_list = []
+            for request in request_list:
+                lead_time, flight_no, offload = determine_lead_time_flight_schedule(request,
+                                                                rfc_time=RFC_TIME,
+                                                                lat=LAT,
+                                                                toa=TOA,
+                                                                flight_schedule=flight_schedules[flight_schedule],
+                                                                flight_duration=flight_duration,
+                                                                offload_rate=OFFLOAD_RATE,
+                                                                last_mile=LAST_MILE,
+                                                                customs=CUSTOMS)
+                
+                lead_time_list.append(lead_time)
+                flight_no_list.append(flight_no)
+                offload_list.append(offload)
+                # Create list with current value of flight_schedule for every request
+                flight_schedule_list = [flight_schedule] * len(request_list)
+                # Create list with current value of flight_duration for every request
+                flight_duration_list = [flight_duration] * len(request_list)
+    # Create dataframe with sample requests and lead times
+            df = pd.DataFrame({'request': request_list,
+                               'lead_time': lead_time_list,
+                               "flight_no": flight_no_list,
+                               "offload": offload_list,
+                               "flight_schedule": flight_schedule_list,
+                               "flight_duration": flight_duration_list})
+
+            # Calculate 95% percentile of lead times
+            percentile_95 = df['lead_time'].quantile(0.95)
+            # Create dict with flight frequency, flight duration and 95% percentile of lead times
+            percentiles = pd.DataFrame({'flight_frequency': [flight_schedule],
+                                        'flight_duration': [flight_duration],
+                                        'percentile_95': [percentile_95],
+                                        'threshold': [THRESHOLD_HOURS]})
+            # add column with 'r' if 95% percentile of lead times is above threshold
+            percentiles['color'] = np.where(percentiles['percentile_95'] > percentiles['threshold'], 'orange', 'c')
+            # Vertically concat percentiles into df_percentiles
+            df_percentiles = pd.concat([df_percentiles, percentiles], axis=0)
+
+            # Vertically concat df into df_final
+            df_final = pd.concat([df_final, df], axis=0)
+
+    # Plot 3d surface plot of flight frequency, flight duration and 95% percentile of lead times with matplotlib. Plot dots above threshold in red
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    ax.scatter(df_percentiles['flight_frequency'], df_percentiles['flight_duration'], df_percentiles['percentile_95'], c=df_percentiles['color'])
+    # Set x-ticks to 1
+    ax.set_xticks(np.arange(1, 14, 1))
+    ax.set_xlabel('Flight Frequency (flights per day)')
+    ax.set_ylabel('Flight Duration [h]')
+    ax.set_zlabel('95% Percentile Lead Time [h]')
+    # Add horizontal plane at z=THRESHOLD_HOURS
+    #ax.plot_trisurf(df_percentiles['flight_frequency'], df_percentiles['flight_duration'], df_percentiles['threshold'], color='grey', alpha=0.5)
+    # Add text with threshold value
+    ax.text(1, 1, THRESHOLD_HOURS*2, "Threshold: " + str(THRESHOLD_HOURS) + "h", color='grey')
+    # Add title
+    ax.set_title("Sensitivity Analysis Lead Time vs. Flight Frequency and Flight Duration \n assuming equally distributed flights throughout the day")
+    # Add legend manually assigning colors to labels
+    #ax.legend(['Lead Time < Threshold', 'Lead Time > Threshold'], loc='upper left')
+
+    # Save to file
+    fig.savefig("output/sensitivity_analysis_3d.png")
+
+    return df_final, df_percentiles
+
 
 if __name__ == "__main__":
     main()
+    df_final, df_percentile = sensitivity_analysis()
+    #df_final.to_excel("output/sensitivity_analysis.xlsx")
+    #fig = px.scatter_3d(df_percentile, x='flight_frequency', y='flight_duration', z='percentile_95',
+    #df_percentile.to_excel("output/sensitivity_analysis_percentiles.xlsx")
+
