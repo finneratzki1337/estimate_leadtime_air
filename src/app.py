@@ -291,14 +291,20 @@ def sensitivity_analysis():
             df_final = pd.concat([df_final, df], axis=0)
 
     # Plot 3d surface plot of flight frequency, flight duration and 95% percentile of lead times with matplotlib. Plot dots above threshold in red
-    fig = plt.figure()
+    fig = plt.figure(figsize=(12,12))
     ax = fig.add_subplot(111, projection='3d')
-    ax.scatter(df_percentiles['flight_frequency'], df_percentiles['flight_duration'], df_percentiles['percentile_95'], c=df_percentiles['color'])
+    ax.scatter(df_percentiles['flight_frequency'], df_percentiles['flight_duration'], df_percentiles['percentile_95'], c=df_percentiles['color'], s=100)
     # Set x-ticks to 1
     ax.set_xticks(np.arange(1, 14, 1))
+    # Set y-ticks to 1
+    ax.set_yticks(np.arange(1, 16, 1))
     ax.set_xlabel('Flight Frequency (flights per day)')
     ax.set_ylabel('Flight Duration [h]')
     ax.set_zlabel('95% Percentile Lead Time [h]')
+
+    # Add plane connecting points with flight frequency = 1 and flight duration = 1
+    ax.plot_trisurf(df_percentiles['flight_frequency'], df_percentiles['flight_duration'], df_percentiles['percentile_95'], color='grey', alpha=0.1)
+
     # Add horizontal plane at z=THRESHOLD_HOURS
     #ax.plot_trisurf(df_percentiles['flight_frequency'], df_percentiles['flight_duration'], df_percentiles['threshold'], color='grey', alpha=0.5)
     # Add text with threshold value
