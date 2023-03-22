@@ -24,9 +24,9 @@ THRESHOLD_HOURS = 12
 PEAK_HOUR = 8
 STD_DEV = 8
 
+
 class EstimateLeadTime:
-    """Class combines functions to estimate leadtime for air transport
-    """
+    """Class combines functions to estimate leadtime for air transport"""
 
     def generate_flight_schedule_histograms(
         self,
@@ -40,7 +40,7 @@ class EstimateLeadTime:
         customs=CUSTOMS,
         threshold=THRESHOLD_HOURS,
         peak_hour=PEAK_HOUR,
-        std_dev=STD_DEV
+        std_dev=STD_DEV,
     ):
         """Fuction to generate histograms of lead times for a given flight schedule."""
         # Create list of sample requests
@@ -73,30 +73,34 @@ class EstimateLeadTime:
                 "offload": offload_list,
             }
         )
-        fig = self.plot_histograms(df,
-                                    rfc_time=rfc_time,
-                                    lat=lat,
-                                    toa=toa,
-                                    flight_duration=flight_duration,
-                                    flight_schedule=flight_schedule,
-                                    offload_rate=offload_rate,
-                                    last_mile=last_mile,
-                                    customs=customs,
-                                    threshold=threshold)
+        fig = self.plot_histograms(
+            df,
+            rfc_time=rfc_time,
+            lat=lat,
+            toa=toa,
+            flight_duration=flight_duration,
+            flight_schedule=flight_schedule,
+            offload_rate=offload_rate,
+            last_mile=last_mile,
+            customs=customs,
+            threshold=threshold,
+        )
         return fig
 
     # Fuction to plot 2 subplots with histograms for lead time and hour of day
-    def plot_histograms(self,
-                        df,
-                        rfc_time=RFC_TIME,
-                        lat=LAT,
-                        toa=TOA,
-                        flight_duration=FLIGHT_DURATION,
-                        flight_schedule=FLIGHT_SCHEDULE,
-                        offload_rate=OFFLOAD_RATE,
-                        last_mile=LAST_MILE,
-                        customs=CUSTOMS,
-                        threshold=THRESHOLD_HOURS):
+    def plot_histograms(
+        self,
+        df,
+        rfc_time=RFC_TIME,
+        lat=LAT,
+        toa=TOA,
+        flight_duration=FLIGHT_DURATION,
+        flight_schedule=FLIGHT_SCHEDULE,
+        offload_rate=OFFLOAD_RATE,
+        last_mile=LAST_MILE,
+        customs=CUSTOMS,
+        threshold=THRESHOLD_HOURS,
+    ):
         """Fuction to plot 2 subplots with histograms for lead time and hour of day."""
         # Calculate 90% percentile of lead times
         percentile_90 = round(df["lead_time"].quantile(0.9), 2)
@@ -217,8 +221,12 @@ class EstimateLeadTime:
         # Add title to hour of day histogram
         ax2.set_title("Hour of day histogram (request behavior)")
         for flight in flight_schedule:
-            ax2.axvline(x=flight_schedule[flight], color="r", linestyle="--", linewidth=3)
-            ax2.text(flight_schedule[flight] - 0.5, 100, f"Flight {flight}", rotation=90)
+            ax2.axvline(
+                x=flight_schedule[flight], color="r", linestyle="--", linewidth=3
+            )
+            ax2.text(
+                flight_schedule[flight] - 0.5, 100, f"Flight {flight}", rotation=90
+            )
 
             ax2.axvline(
                 x=flight_schedule[flight] - (lat + rfc_time),
@@ -250,9 +258,11 @@ class EstimateLeadTime:
         """Function that creates normally distributed sample requests with mean 12:00 and standard deviation 4 hours."""
         # Draw 2000 samples from normal distribution with mean 12:00 and standard deviation 240 minutes
         samples = np.random.normal(peak_hour * 60, std_dev * 60, 2000)
-        request_list = [datetime(2023, 1, 1, 0, 0) + timedelta(minutes=x) for x in samples]
+        request_list = [
+            datetime(2023, 1, 1, 0, 0) + timedelta(minutes=x) for x in samples
+        ]
         return request_list
-    
+
     # Function to create list of sample requests as datetime objects for every minute of the day
     def create_sample_requests(self):
         """Function to create list of sample requests as datetime objects for every minute of the day."""
@@ -261,7 +271,7 @@ class EstimateLeadTime:
             datetime(2023, 1, 1, 0, 0) + timedelta(minutes=x) for x in range(0, 1440)
         ]
         return request_list
-    
+
     # Function to determine lead time based on time of request and flight schedule
     def determine_lead_time_flight_schedule(
         self,
@@ -284,7 +294,7 @@ class EstimateLeadTime:
         # Find maximum flight number
         max_flight = max(flight_schedule.keys())
         # Making sure flights are looped through in ascending order
-        #print(toa)
+        # print(toa)
         for flight in range(1, max_flight + 1):
             if dt_request + timedelta(
                 hours=(rfc_time + lat)
@@ -328,7 +338,12 @@ class EstimateLeadTime:
         if flight_found == False:
             dt_arrival = dt_request_start + timedelta(
                 hours=(
-                    24 + flight_schedule[1] + flight_duration + toa + customs + last_mile
+                    24
+                    + flight_schedule[1]
+                    + flight_duration
+                    + toa
+                    + customs
+                    + last_mile
                 )
             )
             # Find max key in flight_schedule
@@ -336,7 +351,6 @@ class EstimateLeadTime:
 
         lead_time = (dt_arrival - dt_request).total_seconds() / 3600
         return lead_time, flight_no, offload
-    
 
     # Function to create FLIGHT_SCHEDULE based on given number of flights per day
     def create_schedule(self, flights_per_day):
@@ -346,7 +360,6 @@ class EstimateLeadTime:
             flight_schedule[i] = (i - 1) * hours_between_flights
 
         return flight_schedule
-
 
     def sensitivity_analysis(self):
         flight_schedules = {}
@@ -366,7 +379,11 @@ class EstimateLeadTime:
                 flight_no_list = []
                 offload_list = []
                 for request in request_list:
-                    lead_time, flight_no, offload = self.determine_lead_time_flight_schedule(
+                    (
+                        lead_time,
+                        flight_no,
+                        offload,
+                    ) = self.determine_lead_time_flight_schedule(
                         request,
                         rfc_time=RFC_TIME,
                         lat=LAT,
@@ -410,7 +427,9 @@ class EstimateLeadTime:
                 )
                 # add column with 'r' if 95% percentile of lead times is above threshold
                 percentiles["color"] = np.where(
-                    percentiles["percentile_95"] > percentiles["threshold"], "orange", "c"
+                    percentiles["percentile_95"] > percentiles["threshold"],
+                    "orange",
+                    "c",
                 )
                 # Vertically concat percentiles into df_percentiles
                 df_percentiles = pd.concat([df_percentiles, percentiles], axis=0)
@@ -420,7 +439,7 @@ class EstimateLeadTime:
 
         fig = self.plot_3d_surface(df_percentiles)
         return fig
-    
+
     def plot_3d_surface(self, df_percentiles):
         # Plot 3d surface plot of flight frequency, flight duration and 95% percentile of lead times with matplotlib. Plot dots above threshold in red
         fig = plt.figure(figsize=(12, 12))
