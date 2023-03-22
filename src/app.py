@@ -88,7 +88,7 @@ def gr_layout():
         gr.components.Number(label="Latest Acceptance Time (LAT) [h]", value = 1.5),
         gr.components.Number(label="Time Of Availability (TOA) [h]", value = 1.5),
         gr.components.Number(label="Flight Duration [h]", value = 2.5),
-        gr.components.Number(label="Offload Rate [h]", value = 0.02),
+        gr.components.Number(label="Offload Rate", value = 0.02),
         gr.components.Number(label="Customs Time [h]", value = 2),
         gr.components.Number(label="Last Mile Time [h]", value = 2),
         gr.components.Number(label="Target Delivery Time [h]", value = 16),
