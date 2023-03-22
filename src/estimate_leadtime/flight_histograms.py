@@ -13,8 +13,6 @@ FLIGHT_SCHEDULE = {
     1: 3,
     2: 8,
     3: 13,
-    4: 18,
-    5: 23,
 }
 
 FLIGHT_DURATION = 2.5
@@ -40,10 +38,13 @@ class EstimateLeadTime:
         offload_rate=OFFLOAD_RATE,
         last_mile=LAST_MILE,
         customs=CUSTOMS,
+        threshold=THRESHOLD_HOURS,
+        peak_hour=PEAK_HOUR,
+        std_dev=STD_DEV
     ):
         """Fuction to generate histograms of lead times for a given flight schedule."""
         # Create list of sample requests
-        request_list = self.create_sample_requests_norm()
+        request_list = self.create_sample_requests_norm(peak_hour, std_dev)
         lead_time_list = []
         flight_no_list = []
         offload_list = []
@@ -51,14 +52,14 @@ class EstimateLeadTime:
         for request in request_list:
             lead_time, flight_no, offload = self.determine_lead_time_flight_schedule(
                 request,
-                rfc_time=RFC_TIME,
-                lat=LAT,
-                toa=TOA,
-                flight_schedule=FLIGHT_SCHEDULE,
-                flight_duration=FLIGHT_DURATION,
-                offload_rate=OFFLOAD_RATE,
-                last_mile=LAST_MILE,
-                customs=CUSTOMS,
+                rfc_time=rfc_time,
+                lat=lat,
+                toa=toa,
+                flight_schedule=flight_schedule,
+                flight_duration=flight_duration,
+                offload_rate=offload_rate,
+                last_mile=last_mile,
+                customs=customs,
             )
             lead_time_list.append(lead_time)
             flight_no_list.append(flight_no)
@@ -72,11 +73,30 @@ class EstimateLeadTime:
                 "offload": offload_list,
             }
         )
-        fig = self.plot_histograms(df)
+        fig = self.plot_histograms(df,
+                                    rfc_time=rfc_time,
+                                    lat=lat,
+                                    toa=toa,
+                                    flight_duration=flight_duration,
+                                    flight_schedule=flight_schedule,
+                                    offload_rate=offload_rate,
+                                    last_mile=last_mile,
+                                    customs=customs,
+                                    threshold=threshold)
         return fig
 
     # Fuction to plot 2 subplots with histograms for lead time and hour of day
-    def plot_histograms(self, df):
+    def plot_histograms(self,
+                        df,
+                        rfc_time=RFC_TIME,
+                        lat=LAT,
+                        toa=TOA,
+                        flight_duration=FLIGHT_DURATION,
+                        flight_schedule=FLIGHT_SCHEDULE,
+                        offload_rate=OFFLOAD_RATE,
+                        last_mile=LAST_MILE,
+                        customs=CUSTOMS,
+                        threshold=THRESHOLD_HOURS):
         """Fuction to plot 2 subplots with histograms for lead time and hour of day."""
         # Calculate 90% percentile of lead times
         percentile_90 = round(df["lead_time"].quantile(0.9), 2)
@@ -90,7 +110,7 @@ class EstimateLeadTime:
         min_lead_time = round(df["lead_time"].min(), 2)
         # Get percentage of requests below threshold
         percentage_below_threshold = round(
-            (df["lead_time"] <= THRESHOLD_HOURS).sum() / len(df["lead_time"]) * 100, 2
+            (df["lead_time"] <= threshold).sum() / len(df["lead_time"]) * 100, 2
         )
 
         offset = 0.6
@@ -146,7 +166,7 @@ class EstimateLeadTime:
         ax1.text(
             0.1,
             0.1,
-            f"{percentage_below_threshold}% of requests below {THRESHOLD_HOURS} h",
+            f"{percentage_below_threshold}% of requests below {threshold} h",
             transform=ax1.transAxes,
         )
         # Add cumulative distribution line on second y-axis
@@ -185,29 +205,29 @@ class EstimateLeadTime:
 
         # String of Flights from FLIGHT_SCHEDULE
         flight_string = ""
-        for flight in FLIGHT_SCHEDULE:
-            flight_string += f"Flight {flight}: {FLIGHT_SCHEDULE[flight]}h, "
+        for flight in flight_schedule:
+            flight_string += f"Flight {flight}: {flight_schedule[flight]}h, "
         # Add title to subplots
         fig.suptitle(
-            f"Lead time histogram with parameters: RFC_TIME={RFC_TIME}, LAT={LAT}, TOA={TOA}, FLIGHT_DURATION={FLIGHT_DURATION} \n OFFLOAD_RATE={OFFLOAD_RATE}, LAST_MILE={LAST_MILE}, CUSTOMS={CUSTOMS},\n FLIGHTS={flight_string}",
+            f"Lead time histogram with parameters: RFC_TIME={rfc_time}, LAT={lat}, TOA={toa}, FLIGHT_DURATION={flight_duration} \n OFFLOAD_RATE={offload_rate}, LAST_MILE={last_mile}, CUSTOMS={customs},\n FLIGHTS={flight_string}",
             fontsize=12,
         )
         # Add title to lead time histogram
         ax1.set_title("Lead time histogram")
         # Add title to hour of day histogram
         ax2.set_title("Hour of day histogram (request behavior)")
-        for flight in FLIGHT_SCHEDULE:
-            ax2.axvline(x=FLIGHT_SCHEDULE[flight], color="r", linestyle="--", linewidth=3)
-            ax2.text(FLIGHT_SCHEDULE[flight] - 0.5, 100, f"Flight {flight}", rotation=90)
+        for flight in flight_schedule:
+            ax2.axvline(x=flight_schedule[flight], color="r", linestyle="--", linewidth=3)
+            ax2.text(flight_schedule[flight] - 0.5, 100, f"Flight {flight}", rotation=90)
 
             ax2.axvline(
-                x=FLIGHT_SCHEDULE[flight] - (LAT + RFC_TIME),
+                x=flight_schedule[flight] - (lat + rfc_time),
                 color="orange",
                 linestyle="--",
                 linewidth=1,
             )
             ax2.text(
-                FLIGHT_SCHEDULE[flight] - (LAT + RFC_TIME) - 0.5,
+                flight_schedule[flight] - (lat + rfc_time) - 0.5,
                 50,
                 f"Cut-off flight {flight}",
                 rotation=90,
@@ -215,8 +235,6 @@ class EstimateLeadTime:
         # Plot bar chart of number of requests per flight in original order of flights in percent of total requests
         # Get value counts as percentage of total requests
         df["flight_no"].value_counts(normalize=True).sort_index().plot.bar(ax=ax3)
-
-        # df['flight_no'].value_counts().sort_index().plot.bar(ax=ax3)
 
         # Add title to bar chart
         ax3.set_title("Number of requests per flight / Flight Usage")
@@ -228,10 +246,10 @@ class EstimateLeadTime:
         return fig
 
     # Function that creates normally distributed sample requests with mean 12:00 and standard deviation 4 hours
-    def create_sample_requests_norm(self):
+    def create_sample_requests_norm(self, peak_hour=PEAK_HOUR, std_dev=STD_DEV):
         """Function that creates normally distributed sample requests with mean 12:00 and standard deviation 4 hours."""
         # Draw 2000 samples from normal distribution with mean 12:00 and standard deviation 240 minutes
-        samples = np.random.normal(PEAK_HOUR * 60, STD_DEV * 60, 2000)
+        samples = np.random.normal(peak_hour * 60, std_dev * 60, 2000)
         request_list = [datetime(2023, 1, 1, 0, 0) + timedelta(minutes=x) for x in samples]
         return request_list
     
@@ -266,6 +284,7 @@ class EstimateLeadTime:
         # Find maximum flight number
         max_flight = max(flight_schedule.keys())
         # Making sure flights are looped through in ascending order
+        print(toa)
         for flight in range(1, max_flight + 1):
             if dt_request + timedelta(
                 hours=(rfc_time + lat)

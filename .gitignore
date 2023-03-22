@@ -7,3 +7,5 @@ config/*
 !config/conf_template.conf
 
 output/
+
+flagged/
