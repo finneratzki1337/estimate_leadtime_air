@@ -284,7 +284,7 @@ class EstimateLeadTime:
         # Find maximum flight number
         max_flight = max(flight_schedule.keys())
         # Making sure flights are looped through in ascending order
-        print(toa)
+        #print(toa)
         for flight in range(1, max_flight + 1):
             if dt_request + timedelta(
                 hours=(rfc_time + lat)

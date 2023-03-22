@@ -27,6 +27,11 @@ if "AM_I_IN_A_DOCKER_CONTAINER" not in os.environ:
 
 def main():
     """main method that executes the whole application."""
+    
+    # Sensitivity Plote before launching gradio
+    lead_time_estimator.sensitivity_analysis()
+    print("Sensitivity Analysis Done and Plot saved based on CONSTANTS")
+    
     # Define gradio interface
     inputs, outputs = gr_layout()
     gr.Interface(
