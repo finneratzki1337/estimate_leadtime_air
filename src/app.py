@@ -38,7 +38,7 @@ def main():
         outputs=["plot", "plot"],
         title="Flight Lead Time Estimator",
         description="This app estimates the lead time of a flight.",
-    ).launch()
+    ).launch(share=True)
 
 
 def create_histo_chart(rfc_time,
@@ -121,7 +121,7 @@ def gr_layout():
         gr.components.Number(label="Latest Acceptance Time (LAT) [h]", value = 1.5),
         gr.components.Number(label="Time Of Availability (TOA) [h]", value = 1.5),
         gr.components.Number(label="Flight Duration [h]", value = 2.5),
-        gr.components.Number(label="Offload Rate", value = 0.02),
+        gr.components.Number(label="Offload Rate (0 - 1)", value = 0.02),
         gr.components.Number(label="Customs Time [h]", value = 2),
         gr.components.Number(label="Last Mile Time [h]", value = 2),
         gr.components.Number(label="Target Delivery Time [h]", value = 16),
