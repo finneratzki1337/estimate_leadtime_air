@@ -6,6 +6,8 @@ from datetime import datetime, timedelta
 import pandas as pd
 import numpy as np
 from matplotlib import pyplot as plt
+import matplotlib
+matplotlib.use('agg')
 
 import gradio as gr
 
@@ -28,21 +30,18 @@ if "AM_I_IN_A_DOCKER_CONTAINER" not in os.environ:
 def main():
     """main method that executes the whole application."""
     
-    # Sensitivity Plote before launching gradio
-    lead_time_estimator.sensitivity_analysis()
-    print("Sensitivity Analysis Done and Plot saved based on CONSTANTS")
-    
     # Define gradio interface
     inputs, outputs = gr_layout()
     gr.Interface(
-        create_chart,
+        create_histo_chart,
         inputs,
-        outputs,
+        outputs=["plot", "plot"],
         title="Flight Lead Time Estimator",
         description="This app estimates the lead time of a flight.",
     ).launch()
 
-def create_chart(rfc_time,
+
+def create_histo_chart(rfc_time,
                  lat,
                  toa,
                  flight_duration,
@@ -63,14 +62,48 @@ def create_chart(rfc_time,
         flight_schedule[i] = float(flight)
         i += 1
 
-    print(flight_schedule)
-
-    fig = lead_time_estimator.generate_flight_schedule_histograms(
+    fig1 = lead_time_estimator.generate_flight_schedule_histograms(
         rfc_time = rfc_time,
         lat = lat,
         toa = toa,
         flight_schedule = flight_schedule,
         flight_duration = flight_duration,
+        offload_rate = offload_rate,
+        customs = customs_time,
+        last_mile = last_mile_time,
+        threshold = target_delivery_time,
+        peak_hour=peak_time,
+        std_dev=std_dev
+    )
+
+    fig2 = lead_time_estimator.sensitivity_analysis(rfc_time=rfc_time,lat=lat, toa=toa, offload_rate=offload_rate, customs=customs_time, last_mile=last_mile_time, threshold=target_delivery_time, peak_hour=peak_time, std_dev=std_dev)
+    return [fig1, fig2]
+
+def create_sensitivity_chart(rfc_time,
+                 lat,
+                 toa,
+                 flight_duration,
+                 offload_rate,
+                 customs_time,
+                 last_mile_time,
+                 target_delivery_time,
+                 peak_time, std_dev,
+                 flight_schedule):
+    """Getting the Lead Time Scatterplots."""
+
+    # Generate dict from flight schedule
+    flight_schedule_list = flight_schedule.split(",")
+    flight_schedule = {}
+    # length of flight schedule
+    i = 1
+    for flight in flight_schedule_list:
+        flight_schedule[i] = float(flight)
+        i += 1
+
+    fig = lead_time_estimator.sensitivity_analysis(
+        rfc_time = rfc_time,
+        lat = lat,
+        toa = toa,
         offload_rate = offload_rate,
         customs = customs_time,
         last_mile = last_mile_time,
@@ -97,8 +130,8 @@ def gr_layout():
         gr.components.Textbox(lines=1, label="Flight Schedule (Full departure hours of day separated by comma)", value = "6, 12, 20"),
     ]
 
-    # Plot as output
-    outputs = [gr.Plot()]
+    # 2 Plots as outputs
+    outputs = [gr.components.Plot(), gr.components.Plot()]
 
     return inputs, outputs
 

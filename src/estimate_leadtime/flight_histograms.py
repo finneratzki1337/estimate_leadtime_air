@@ -361,7 +361,16 @@ class EstimateLeadTime:
 
         return flight_schedule
 
-    def sensitivity_analysis(self):
+    def sensitivity_analysis(self,
+                             rfc_time,
+                             lat,
+                             toa,
+                             offload_rate,
+                             last_mile,
+                             customs,
+                             threshold,
+                             peak_hour,
+                             std_dev):
         flight_schedules = {}
         flight_durations = []
         for i in range(1, 14):
@@ -370,7 +379,7 @@ class EstimateLeadTime:
         for i in range(1, 16):
             flight_durations.append(i)
 
-        request_list = self.create_sample_requests_norm()
+        request_list = self.create_sample_requests_norm(peak_hour=peak_hour, std_dev=std_dev)
         df_final = pd.DataFrame()
         df_percentiles = pd.DataFrame()
         for flight_schedule in flight_schedules:
@@ -385,14 +394,14 @@ class EstimateLeadTime:
                         offload,
                     ) = self.determine_lead_time_flight_schedule(
                         request,
-                        rfc_time=RFC_TIME,
-                        lat=LAT,
-                        toa=TOA,
+                        rfc_time=rfc_time,
+                        lat=lat,
+                        toa=toa,
                         flight_schedule=flight_schedules[flight_schedule],
                         flight_duration=flight_duration,
-                        offload_rate=OFFLOAD_RATE,
-                        last_mile=LAST_MILE,
-                        customs=CUSTOMS,
+                        offload_rate=offload_rate,
+                        last_mile=last_mile,
+                        customs=customs,
                     )
 
                     lead_time_list.append(lead_time)
@@ -422,7 +431,7 @@ class EstimateLeadTime:
                         "flight_frequency": [flight_schedule],
                         "flight_duration": [flight_duration],
                         "percentile_95": [percentile_95],
-                        "threshold": [THRESHOLD_HOURS],
+                        "threshold": [threshold],
                     }
                 )
                 # add column with 'r' if 95% percentile of lead times is above threshold
@@ -437,10 +446,10 @@ class EstimateLeadTime:
                 # Vertically concat df into df_final
                 df_final = pd.concat([df_final, df], axis=0)
 
-        fig = self.plot_3d_surface(df_percentiles)
+        fig = self.plot_3d_surface(df_percentiles, threshold)
         return fig
 
-    def plot_3d_surface(self, df_percentiles):
+    def plot_3d_surface(self, df_percentiles, threshold):
         # Plot 3d surface plot of flight frequency, flight duration and 95% percentile of lead times with matplotlib. Plot dots above threshold in red
         fig = plt.figure(figsize=(12, 12))
         ax = fig.add_subplot(111, projection="3d")
@@ -472,8 +481,8 @@ class EstimateLeadTime:
         ax.text(
             1,
             1,
-            THRESHOLD_HOURS * 2,
-            "Threshold: " + str(THRESHOLD_HOURS) + "h",
+            threshold * 2,
+            "Threshold: " + str(threshold) + "h",
             color="grey",
         )
         # Add title
