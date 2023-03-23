@@ -38,7 +38,7 @@ def main():
         outputs=["plot", "plot"],
         title="Flight Lead Time Estimator",
         description="This app estimates the lead time of a flight.",
-    ).launch(share=True)
+    ).launch()
 
 
 def create_histo_chart(rfc_time,
