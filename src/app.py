@@ -17,28 +17,46 @@ from module_template.module_class import SampleClass
 from estimate_leadtime.flight_histograms import EstimateLeadTime
 
 # MY_ENV_VAR = os.getenv('MY_ENV_VAR')
+# Check if output folder exists if not create it
+if not os.path.exists("output"):
+    os.makedirs("output")
 
 # reading potential config
-config = ConfigParser()
-config.read("config/conf.conf")
+#config = ConfigParser()
+#config.read("config/conf.conf")
 
 lead_time_estimator = EstimateLeadTime()
 
 if "AM_I_IN_A_DOCKER_CONTAINER" not in os.environ:
     load_dotenv()
+    in_docker = False
+else:
+    in_docker = True
+
+# Read Username and Password from environment variables
+the_username = os.getenv("USER_NAME")
+the_password = os.getenv("PASSWORD")
+the_port = int(os.getenv("EXT_PORT"))
 
 def main():
     """main method that executes the whole application."""
     
     # Define gradio interface
     inputs, outputs = gr_layout()
-    gr.Interface(
+    app = gr.Interface(
         create_histo_chart,
         inputs,
         outputs=["plot", "plot"],
         title="Flight Lead Time Estimator",
         description="This app estimates the lead time of a flight.",
-    ).launch()
+    )
+
+    if in_docker:
+        app.launch(auth=(the_username, the_password), server_port=the_port, server_name="0.0.0.0")
+    else:
+        app.launch(auth=(the_username, the_password), server_port=the_port)
+
+    
 
 
 def create_histo_chart(rfc_time,

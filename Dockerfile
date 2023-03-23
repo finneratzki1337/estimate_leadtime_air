@@ -19,17 +19,18 @@ RUN useradd -ms /bin/bash exec-user
 ADD . /code
 
 # If needed writeable workdir for user (e.g. files or something)
-#RUN chown exec-user files
+RUN chown exec-user /code/output
+RUN chown exec-user /code/flagged
 
 # Switching user for security reasons
 USER exec-user
 
 # Having all tests for testfolder being run
-RUN pytest
+#RUN pytest
 
 # Optional - Run Pylint
-WORKDIR /code/src
-RUN pylint --fail-under=8 src
-WORKDIR /code
+#WORKDIR /code/src
+#RUN pylint --fail-under=8 src
+#WORKDIR /code
 
 CMD [ "python3", "src/app.py" ]

@@ -249,7 +249,7 @@ class EstimateLeadTime:
         # Add red vertical lines for each flight
 
         # Save figure to file
-        fig.savefig("output/histograms.png")
+        #fig.savefig("output/histograms.png")
 
         return fig
 
@@ -492,6 +492,6 @@ class EstimateLeadTime:
         # Add legend manually assigning colors to labels
 
         # Save to file
-        fig.savefig("output/sensitivity_analysis_3d.png")
+        #fig.savefig("output/sensitivity_analysis_3d.png")
 
         return fig

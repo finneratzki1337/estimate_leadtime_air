@@ -6,6 +6,7 @@ __pycache__
 config/*
 !config/conf_template.conf
 
-output/
+# Ignore all files in output/ folder but not folder itself
+output/*
 
 flagged/
